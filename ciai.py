@@ -3,120 +3,152 @@ from requests_html import HTMLSession
 from rich.progress import Console
 import requests,os,sys,rich,unicodedata
 
-c = Console()
+Host = ""
+Save = False
+Sys_type = ""
+Encode_type = "ISO-8859-1"
+Ip = ''
+
+banner = """\n\n
+         ██████╗██╗ █████╗ ██╗    ██╗   ██╗██████╗     ██████╗         
+        ██╔════╝██║██╔══██╗██║    ██║   ██║╚════██╗   ██╔═████╗        
+        ██║     ██║███████║██║    ██║   ██║ █████╔╝   ██║██╔██║        
+        ██║     ██║██╔══██║██║    ╚██╗ ██╔╝██╔═══╝    ████╔╝██║        
+        ╚██████╗██║██║  ██║██║     ╚████╔╝ ███████╗██╗╚██████╔╝        
+         ╚═════╝╚═╝╚═╝  ╚═╝╚═╝      ╚═══╝  ╚══════╝╚═╝ ╚═════╝     
+         
+    GITHUB: https://github.com/fabioadler\n\n"""
+
+if('win' in sys.platform):
+    Sys_type = "Windows"
+else:
+    Sys_type = "Linux"
 
 def cls():
-    if('win' in sys.platform):
+    if(Sys_type == "Windows"):
         os.system('cls')
     else:
         os.system('clear')
 
-def whois(host):
-    try:
-        url='https://who.is/domains/search'
-        h = {
-            'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.26',
-            'content-type':'application/x-www-form-urlencoded'
-        }
+def modo_de_uso():
+    print(f'{banner}\n]===> Modo de uso: py ciai.py -h [host]\n]===> Caso queira salvar um relatorio use: py ciai.py -h [host] -s')
 
-        pag = bs(requests.post(url,data={'searchString':host},headers=h).text,'html.parser')
-        cont = (pag.find_all('pre')[0].text).split('\n')
-        conteudo = ''
-        for i in cont:
-            if(':' in i):
-                campo = i.split(':')
-                campo = f'[b][red]{campo[0]}[/red][/b]:[i]{campo[1]}[/]'
-            else:
-                campo = i
-            conteudo += f' {campo}\n'
-        return conteudo
-    except:
-        return 'Não encontrado...'
+if(len(sys.argv) >= 2):
+    if('--help' in sys.argv):
+        cls()
+        modo_de_uso()
+        exit()
+    else:
+        pass
+    if('-h' in sys.argv):
+        Host = str(sys.argv[sys.argv.index('-h') + 1])
+    else:
+        cls()
+        modo_de_uso()
+        exit()
+    if('-s' in sys.argv):
+        Save = True
+    else:
+        Save = False
+else:
+    cls()
+    modo_de_uso()
+    exit()
 
-def geo_location(host):
-    url = f'https://ipapi.com/ip_api.php?ip={host}'
+def Geo_location():
+    global Ip
+    url = f'https://ipapi.com/ip_api.php?ip={Host}'
     pag = requests.get(url).json()
     conteudo = ''
-    ip = ''
     for i in pag:
         if('ip' == i):
-            ip = pag[i]
-        conteudo += f' [b][red]{i}[/red][/b]: [i]{pag[i]}[/]\n'
-    return [conteudo,ip]
+            Ip = pag[i]
+        elif('location' in i):
+            break
+        else:
+            conteudo += f'{i}: {pag[i]}\n'
+    return conteudo
 
-def ip(i):
+def Rota(ip):
+    if(Sys_type == "Windows"):
+        dados = ((str(os.popen(f"tracert -h 100 -w 1000 -4 {ip}").read().encode(Encode_type)).replace("b'","")).replace("'","")).split('\\n')
+    else:
+        dados = ((str(os.popen(f"traceroute -m 100 -w 1000 -4 {ip}").read().encode(Encode_type)).replace("b'","")).replace("'","")).split('\\n')
+    conteudo = ''
+    for dt in dados:
+        if(dt != ''):
+            conteudo += f"{dt}\n"
+        else:
+            pass
+    return conteudo
+
+def Whois():
+    pag = bs(requests.get(f"https://who.is/whois/{Host}").text,'html.parser')
+    conteudo = pag.find_all('div',{'class':'queryResponseContainer'})
+    cont = str(conteudo[0].text).split('\n')
+    cnt = ""
+    for c in cont:
+        if(c != ''):
+            if('Registrar Info' in c):
+                cnt += f"\n{c}\n\n"
+            elif(('Important Dates' in c) or ('Name Servers' in c) or ('Referral URL' in c)):
+                cnt += f"\n\n{c}:\n\n"
+            elif('Status' in c):
+                cnt += f"\n{c}:\n\n"
+            elif('On' in c):
+                cnt += f"{c} "
+            elif(('MarkMonitor' in c) or ('Name' in c) or ('Whois Server' in c) or ('ns' in c)):
+                cnt += f"{c}: "
+            #elif('Registrar Data' in c):
+            #    break
+            else:
+                cnt += f"{c}\n".replace(",","\n")
+        else:
+            pass
+    return cnt
+
+def IP(ip):
     session = HTMLSession()
-    url = f'https://pt.infobyip.com/ip-{i}.html'
+    url = f'https://pt.infobyip.com/ip-{ip}.html'
     r = session.get(url)
     r.html.render()
     cont = str(r.html.find('tr')[3].text).split('Localização')
     dados = (str(cont[0]).replace("(adsbygoogle = window.adsbygoogle || []).push({});",'').replace('Leaflet | © OpenStreetMap contributors','').replace('Tools','').replace('whois','').replace('sibilo','').replace('traceroute','').replace('mtr','').replace('dns','').replace('+−','').replace('\n\n','').replace('Dados Geográficos','')).split('\n')
     conteudo = ''
     for d in dados:
-        conteudo += f' {d}\n'
-    return conteudo
-
-def separador(title):
-    n = 80
-    count = '_'*int(n/2)
-    count = f'\n\n[bright_black b]{count}[/] [b i cyan]{title}[/] [bright_black b]{count}[/]\n\n'
-    return count
-
-def remove_style(t):
-    return t.replace('[b]','').replace('[/b]','').replace('[red]','').replace('[/red]','').replace('[/]','').replace('[spring_green2]','').replace('[b red]','').replace('[white i]','').replace('[i]','').replace('[/i]','').replace('[bright_black b]','').replace('[b i cyan]','')
-
-def remove_ac(t):
-    normal = unicodedata.normalize('NFD',t)
-    return normal.encode('ascii','ignore').decode('utf8').casefold()
-
-banner = """
-[spring_green2]
-                                                                                                
-                                                                                                  
-         _____________    ____               __   ______
-        / ____/  _/   |  /  _/              /  | / __   | 
-       / /    / // /| |  / /       _   _   /_/ || | //| |  
-      / /____/ // ___ |_/ /       | | | |    | || |// | | 
-      \____/___/_/  |_/___/        \ V /     | ||  /__| | 
-                                    \_/      |_(_)_____/   
-                                                        
-    [/] [b red]by:[/] [white i]https://github.com/xrlplerl[/]
-                                    
-
-"""
-
-ajuda = banner + """
- [b red]Para usar:[/]
- [yellow1]*[/yellow1] [i spring_green4]scipt.py -h [green_yellow]'host'[/green_yellow][/]
-"""
-
-if(len(sys.argv) > 2):
-    if('-h' in sys.argv):
-        host = sys.argv[sys.argv.index('-h')+1]
-        cls()
-        with c.status('Carregando...'):
-            banner += separador('Whois')
-            banner += whois(host)
-            banner += separador('IP Location')
-            geo = geo_location(host)
-            banner += geo[0]
-            banner += separador('INFO IP')
-            banner += ip(geo[1])
-        if('-s' in sys.argv):
-            aq = open(f'{host}.txt','w')
-            aq.write(remove_ac(remove_style(banner)))
-            aq.close()
+        if(d != ''):
+            if(('Domínio' in d) or ('ISP' in d) or ('ASN' in d) or ('Continente' in d) or ('País' in d) or ('Lat / Long' in d)):
+                conteudo += f'{d}: '
+            elif('Dados IP' in d):
+                conteudo += f'\n{d}\n\n'
+            elif('Ferramentas' in d):
+                pass
+            else:
+                conteudo += f'{d}\n'
         else:
             pass
-    elif('--help' in sys.argv):
-        cls()
-        rich.print(ajuda)
-        exit()
+    return conteudo
+
+
+def main():
+    cls()
+    print(f"{banner}\nSeja bem vindo a nossa ferramente de analise\nVamos começar a analise!\nAnalizando...")
+    conteudo = f"{banner}\n\nDados Whois:\n\n"
+    conteudo += Whois()
+    conteudo += f"\n\nDados Geo Loaction:\n\n"
+    conteudo += Geo_location()
+    conteudo += f"\n\nDados IP:\n\n"
+    conteudo += IP(Ip)
+    conteudo += f"\n\nRotas:\n\n"
+    conteudo += Rota(Ip)
+    if(Save):
+        print('Salvando resultado...')
+        arquivo = open(f'{Host}.txt','w',encoding="UTF-8")
+        arquivo.write(conteudo)
+        arquivo.close()
     else:
         pass
     cls()
-    rich.print(banner)
-else:
-    cls()
-    rich.print(ajuda)
-    exit()
+    print(conteudo)
+
+main()

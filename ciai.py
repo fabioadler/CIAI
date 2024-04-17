@@ -1,7 +1,6 @@
 from bs4 import BeautifulSoup as bs
 from requests_html import HTMLSession
-from rich.progress import Console
-import requests,os,sys,rich,unicodedata
+import requests,os,sys
 
 Host = ""
 Save = False
@@ -33,7 +32,7 @@ def cls():
 def modo_de_uso():
     print(f'{banner}\n]===> Modo de uso: py ciai.py -h [host]\n]===> Caso queira salvar um relatorio use: py ciai.py -h [host] -s')
 
-if(len(sys.argv) >= 2):
+if(len(sys.argv) >= 3):
     if('--help' in sys.argv):
         cls()
         modo_de_uso()

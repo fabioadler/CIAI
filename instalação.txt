@@ -1,3 +1,4 @@
 py -m pip install bs4 requests_html
 py -m pip uninstall pyppeteer 
 py -m pip install pyppeteer==1.0.0
+py ciai.py -h [host para teste]

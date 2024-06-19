@@ -126,18 +126,23 @@ def IP(ip):
                 conteudo += f'{d}\n'
         else:
             pass
+    session.close()
+    cls()
     return conteudo
 
 
 def main():
     cls()
-    print(f"{banner}\nSeja bem vindo a nossa ferramente de analise\nVamos começar a analise!\nAnalizando...")
+    msg = f"{banner}\nSeja bem vindo a nossa ferramente de analise\nVamos começar a analise!\nAnalizando..."
+    print(msg)
     conteudo = f"{banner}\n\nDados Whois:\n\n"
     conteudo += Whois()
     conteudo += f"\n\nDados Geo Loaction:\n\n"
     conteudo += Geo_location()
     conteudo += f"\n\nDados IP:\n\n"
     conteudo += IP(Ip)
+    cls()
+    print(msg)
     conteudo += f"\n\nRotas:\n\n"
     conteudo += Rota(Ip)
     if(Save):
